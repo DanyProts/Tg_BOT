@@ -6,26 +6,28 @@ from base_functions import search, match
 def rel_inf(request_user,model,device,tokenizer,num,df,df1,df2,df3,df4,df5):
   return  df.loc[num, 'rel_info']
 def example(request_user,model,device,tokenizer,num,df,df1,df2,df3,df4,df5):
-
-    s1 = df.loc[num, 'Таблица\n']
-
-    name_col = ['вектор_краткое_описание','вектор_названия']
+    data = pd.DataFrame()
+    s1 = df.loc[num, 'Таблица\n'][:-1]
+    
+    name_col = ['вектор_названия','вектор_краткое_описание',]
     if s1 == 'specialties':
-        pass
-    if s1 == 'disciplines':
-        df1 = df2
-    if s1 == 'enterprises':
-        df1 = df3
-    if s1 == 'individual_achievements':
-        df1 = df4
-    if s1 == 'departments':
-        df1 = df5
+        data = pd.concat([data, df1], ignore_index=True)
+    elif s1 == 'disciplines':
+        data = pd.concat([data, df2], ignore_index=True)
+    elif s1 in 'enterprises_new':
+        data = pd.concat([data, df3], ignore_index=True)
+    elif s1 == "individual_achievements":
+        
+        data = pd.concat([data, df4], ignore_index=True)
+        
+    elif s1 == 'departments':
+        data = pd.concat([data, df5], ignore_index=True)
     embedding = []
 
-    df1.head()
+    
     for i in name_col:
         try:
-            embedding = df1[i].apply(ast.literal_eval)
+            embedding = data[i].apply(ast.literal_eval)
             break
         except:
             continue
@@ -34,11 +36,11 @@ def example(request_user,model,device,tokenizer,num,df,df1,df2,df3,df4,df5):
     
     num1 = search(req,embedding)
     res = ''
-    colum = df1.columns
+    colum = data.columns
 
     for i in colum:
         if 'вектор' not in i:
-            res+= f'{i}:{df1.loc[num1, i]}'+' '
+            res+= f'{i}:{data.loc[num1, i]}'+' '
 
     return res
 def specialties_with_kod(request_user,model,device,tokenizer,num,df,df1,df2,df3,df4,df5):
@@ -109,3 +111,4 @@ def specialties_list(request_user,model,device,tokenizer,num,df,df1,df2,df3,df4,
         return result
     else:
         return 'Уточните пожалуйста ваш вопрос или попробуйте сформиулировать по другому'
+

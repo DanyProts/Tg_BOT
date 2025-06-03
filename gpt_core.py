@@ -1,8 +1,9 @@
 import openai
 import os
+import re
 
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 openai.api_key = OPENAI_API_KEY
 CHAT_HISTORY_DIR = "chat_history"
 
@@ -13,6 +14,7 @@ def load_instructions(file_path="instructions.txt"):
     else:
         raise FileNotFoundError(f"Файл с инструкциями '{file_path}' не найден.")
 GPT_INSTRUCTIONS = load_instructions()
+
 def get_chat_history(user_id, CHAT_HISTORY_DIR):
     file_path = os.path.join(CHAT_HISTORY_DIR, f"{user_id}.txt")
     with open(file_path, "r", encoding="utf-8") as f:
@@ -40,19 +42,24 @@ def gpt_response(prompt):
     except Exception as e:
         return f"Произошла ошибка при обработке запроса: {e}"
 
-def save_message(user_id, new_message, name_object, max_length=1024):
+def save_message(user_id, new_message, name_object):
     file_path = os.path.join(CHAT_HISTORY_DIR, f"{user_id}.txt")
 
     
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
             old_lines = f.readlines()
-            print(len(old_lines))
+            
     else:
         old_lines = []
-
     
-    old_lines.append(name_object + ':' + new_message +'\n')
+    new_text = ''.join(name_object + ':' + new_message)
+    new_text = new_text.replace('\t', ' ')
+    new_text = new_text.replace('\n',' ')
+    new_text = re.sub(' +', ' ', new_text)
+    new_text = new_text.strip()
+
+    old_lines.append(new_text + '\n')
     
     
     while len(old_lines) > 20 and old_lines:
@@ -63,3 +70,10 @@ def save_message(user_id, new_message, name_object, max_length=1024):
     with open(file_path, "w", encoding="utf-8") as f:
         f.writelines(old_lines)   
     f.close()
+
+
+    print('raw_text:', raw_text)
+        parsed = json.loads(raw_text)
+        print('parsed:', raw_text)
+        answer = parsed["text"]
+        print(str(answer)[1:])

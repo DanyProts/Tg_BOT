@@ -1,19 +1,20 @@
 import pandas as pd
-
+import re
 import telebot
 from telebot import types
-
+from yandex_gpt_main import yandex_gpt, save_message
 import ast
 import psycopg2
 from bs4 import BeautifulSoup
-from  gpt_core import gpt_response, load_instructions, get_chat_history, save_message
+#from  gpt_core import gpt_response, load_instructions, get_chat_history, save_message
 from base_functions import search1
 from rag_functions import rel_inf, example, study_plan, specialties_list, specialties_with_kod
 from model_util import model, device, tokenizer
 
-bot = telebot.TeleBot("7520982221:AAFjw7m9pwZGAhouJdDsXYCAiahktonOrx4", parse_mode='HTML')  
+bot = telebot.TeleBot("7514035840:AAFXQyuhvQ6ecZ7CbRap1ZXewlor9l0dcBE", parse_mode='HTML')  
+bot.remove_webhook()
 CHAT_HISTORY_DIR = "chat_history"
-GPT_INSTRUCTIONS = load_instructions()
+
 
 db_params = {
     'host': '212.109.194.252',
@@ -22,7 +23,7 @@ db_params = {
     'user': 'postgres',
     'password': 'F2_RdsFh2'
 }
-table_sp = ['FAQ','specialties','disciplines','enterprises','individual_achievements','departments']
+table_sp = ['FAQ','specialties','disciplines','enterprises_new','individual_achievements','departments']
 
 for i in range(len(table_sp)):
   table_name = table_sp[i]
@@ -57,21 +58,28 @@ for i in range(len(table_sp)):
           query = f'SELECT * FROM "{table_name}"';
           df5 = pd.read_sql_query(query, conn)
           print(df5.head())
-  except:
-      print(table_sp[i])
+  except Exception as e:
+      print(f'ошибка :{e}')
 
-  finally:
-      conn.close()
+  
 
+def convert_markdown_to_html(text):
+    text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)  # жирный
+    text = re.sub(r"__(.*?)__", r"<u>\1</u>", text)       # подчёркнутый
+    text = re.sub(r"\*(.*?)\*", r"<i>\1</i>", text)       # курсив
+    text = re.sub(r"`(.*?)`", r"<code>\1</code>", text)   # код
+    return text
 
-
-def convert_to_telegram_html(html_text: str) -> str:
-    soup = BeautifulSoup(html_text, "html.parser")
+def convert_to_telegram_html(text: str) -> str:
+    text = convert_markdown_to_html(text)
+    text = text.replace("\\n", "\n").replace("\n\n", "\n")
+    soup = BeautifulSoup(text, "html.parser")
     for tag in soup.find_all():
         if tag.name not in ['b', 'strong', 'i', 'em', 'u', 's', 'code', 'pre', 'a']:
-            tag.unwrap()  
-
+            tag.unwrap()
     return str(soup)
+
+
 
 
 
@@ -152,9 +160,9 @@ def main(request_user,df,df1,df2,df3,df4,df5):
     embedding = df['emb_FAQ'].apply(ast.literal_eval)
     
     num = int(search1(request_user,embedding))
-    print(f'!!!!!!{num}')
+    
     if num != -1:
-      
+      print(num, df.loc[num, 'Таблица\n'])
       try:
           
           args = [request_user,model,device,tokenizer,num,df,df1,df2,df3,df4,df5]
@@ -169,6 +177,7 @@ def main(request_user,df,df1,df2,df3,df4,df5):
 
 @bot.message_handler(commands=['start'])
 def start(message):
+
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
     btn1 = types.KeyboardButton("👋 Спросить")
@@ -190,16 +199,22 @@ def start(message):
 
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
+    
     list_massage = pd.read_csv('Massage_list.csv')
+    save_message(message.from_user.id,message.text,'user')
     error_list = pd.read_csv('Mistake_question.csv')
     try:
         if message.text == '👋 Спросить':
+            save_message(message.from_user.id,"Привет! Задате мне вопрос о МГТУ, и я постараюсь ответить.",'assistant')
             bot.send_message(message.from_user.id, "Привет! Задате мне вопрос о МГТУ, и я постараюсь ответить.")
         elif message.text == 'ℹ️ О боте':
+            save_message(message.from_user.id,"Привет! Я умный помощник МГТУ, который поможет тебе при поступлении на специалитет. Я умею отвечать на самые часто задаваемые вопросы и очень скоро научусь думать абстрактно. Задай мне вопрос и я отвечу!",'assistant')
             bot.send_message(message.from_user.id, "Привет! Я умный помощник МГТУ, который поможет тебе при поступлении на специалитет. Я умею отвечать на самые часто задаваемые вопросы и очень скоро научусь думать абстрактно. Задай мне вопрос и я отвечу!")
         elif message.text == '📅 Даты':
+            save_message(message.from_user.id,"Привет! Задате мне вопрос о МГТУ, и я постараюсь ответить.",'assistant')
             bot.send_message(message.from_user.id, "Подробнее вы сможете ознакомиться по ссылке https://bmstu.ru/documents")
         elif message.text == '📞 Контакты':
+            save_message(message.from_user.id,"Телефон приемной комиссии: ```+7\(499\)263\-65\-41```\nНаша почта: ```abiturient@bmstu\.ru```\nБолее подробную информацию вы можете прочитать на https://bmstu\.ru/admission\-board",'assistant')
             bot.send_message(
                 message.from_user.id, 
                 "Телефон приемной комиссии: ```+7\(499\)263\-65\-41```\nНаша почта: ```abiturient@bmstu\.ru```\nБолее подробную информацию вы можете прочитать на https://bmstu\.ru/admission\-board", 
@@ -207,6 +222,7 @@ def get_text_messages(message):
             )
 
         elif message.text == '❓ Задать вопрос':
+            save_message(message.from_user.id,"Напиши свой вопрос, и я постараюсь помочь, а если у меня не получится, то вы можете позвонить нам на телефон ```+7\(499\)263\-65\-41``` или написать на почту ```abiturient@bmstu\.ru```",'assistant')
             bot.send_message(
                 message.from_user.id, 
                 "Напиши свой вопрос, и я постараюсь помочь, а если у меня не получится, то вы можете позвонить нам на телефон ```+7\(499\)263\-65\-41``` или написать на почту ```abiturient@bmstu\.ru```", 
@@ -225,30 +241,35 @@ def get_text_messages(message):
                         break
                 
                 error_list.to_csv('Mistake_question.csv',index=False)
+                save_message(message.from_user.id,"Ваш вопрос отправлен в тех.поддержку, в скором времени мы разберемся и исправим ошибки, спасибо за помощь!",'assistant')
                 bot.send_message(message.from_user.id, "Ваш вопрос отправлен в тех.поддержку, в скором времени мы разберемся и исправим ошибки, спасибо за помощь!")
             except:
+                save_message(message.from_user.id,'Спасибо за ваше сообщение!','assistant')
+    
                 bot.send_message(message.from_user.id, 'Спасибо за ваше сообщение!')
         else:
-            save_message(message.from_user.id,message.text,'user')
-            prompt = main(message.text,df,df1,df2,df3,df4,df5) 
-            request = message.text + 'Данные для ответа:' + prompt +'. Предыдущий диалог:' + get_chat_history(message.from_user.id,CHAT_HISTORY_DIR)
-            response = gpt_response(request)
-            save_message(message.from_user.id,response,'BOT')
+            
+            prompt = main(message.text,df,df1,df2,df3,df4,df5)
+            print(prompt)
+            response = yandex_gpt(message.from_user.id,prompt) 
+            print('модель дала ответ')   
+            save_message(message.from_user.id,response,'assistant')
+            
             result = convert_to_telegram_html(response)
+            
             list_massage.loc[len(list_massage)]=[message.text,result,message.from_user.id]
+            
             list_massage.to_csv('Massage_list.csv',index=False)
             if result == None:
                 bot.send_message(message.from_user.id, "В моей базе данных нет информации об этом вопросе. Попробуйте переформулировать, а я попробую подумать")
                 bot.send_message(message.from_user.id, "⏳ Думаю...")
-                # response = query_model(message.text)
-                # if not response.strip():
-                #     response = "Попробуйте задать вопрос еще раз"
                 bot.send_message(message.from_user.id, "Попробуйте переформулировать и я отвечу еще раз")
             else:
-              print(response) 
+              
               bot.send_message(message.from_user.id, result)
     except Exception as e:
         print(f"Ошибка: {e}")
-        bot.send_message(message.from_user.id, "К сожалению, у меня, пока что не получается овтветить на данный вопрос просьба нажать поле: 'Ответ не подходит 😈', ")
+        save_message(message.from_user.id,"К сожалению, у меня, пока что не получается овтветить на данный вопрос просьба нажать поле: 'Ответ не подходит 😈'",'assistant')
+        bot.send_message(message.from_user.id, "К сожалению, у меня, пока что не получается овтветить на данный вопрос просьба нажать поле: 'Ответ не подходит 😈'")
 
 bot.polling(none_stop=True, interval=0)

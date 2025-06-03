@@ -66,3 +66,17 @@ tzdata==2025.2
 urllib3==2.3.0
 xxhash==3.5.0
 yarl==1.19.0
+aiofiles==24.1.0 
+cffi==1.17.1
+cryptography==44.0.2
+deprecated==1.2.18
+get-annotations==0.1.2 
+googleapis-common-protos==1.70.0 
+grpcio==1.71.0
+grpcio-tools==1.71.0
+protobuf==5.29.4
+pycparser==2.22
+pyjwt==2.10.1
+wrapt==1.17.2
+yandex-cloud-ml-sdk==0.9.0
+yandexcloud==0.340.0
