@@ -55,7 +55,7 @@ def extract_text_from_result(result) -> str:
 
 
 def get_dialog(user_id):
-    f =  open(f"chat_history\{user_id}.txt").readlines()
+    f = open(f"chat_history/{user_id}.txt", encoding="utf-8").read().splitlines()
     dialog_array = []
     for i in f[-3:]:
         if 'user' in i:
