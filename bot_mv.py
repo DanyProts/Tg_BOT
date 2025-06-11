@@ -11,6 +11,7 @@ from rag_functions import rel_inf, example, study_plan, specialties_list, specia
 from model_util import model, device, tokenizer
 from dotenv import load_dotenv
 import os
+import time
 
 load_dotenv()
 
@@ -274,4 +275,17 @@ def get_text_messages(message):
         save_message(message.from_user.id,"К сожалению, у меня, пока что не получается овтветить на данный вопрос просьба нажать поле: 'Ответ не подходит 😈'",'assistant')
         bot.send_message(message.from_user.id, "К сожалению, у меня, пока что не получается овтветить на данный вопрос просьба нажать поле: 'Ответ не подходит 😈'")
 
-bot.polling(none_stop=True, interval=0)
+
+def start_polling():
+    while True:
+        try:
+            bot.polling(none_stop=True, interval=0)
+        except Exception as e:
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Exception in polling: {e}")
+            time.sleep(5) # чтобы не забанили за слишком частые запросы
+        else:
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] завершился без ошибок")
+            break
+
+if __name__ == "__main__":
+    start_polling()
