@@ -2,10 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
-from tqdm import tqdm
 
 class AttentionPooling(nn.Module):
     def __init__(self, hidden_size):
@@ -24,7 +20,7 @@ def get_embeddings(texts, model, tokenizer, device, pooling):
         padding=True,
         truncation=True,
         return_tensors="pt",
-        max_length=512
+        max_length=1024
     ).to(device)
 
     with torch.no_grad():
@@ -33,7 +29,7 @@ def get_embeddings(texts, model, tokenizer, device, pooling):
         attention_mask = encoded["attention_mask"]
         return pooling(last_hidden_state, attention_mask)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_name = "bert-base-multilingual-cased"
+model_name = "ai-forever/ru-en-RoSBERTa"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModel.from_pretrained(model_name).to(device)
 pooling = AttentionPooling(model.config.hidden_size).to(device)
