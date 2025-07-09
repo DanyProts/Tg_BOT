@@ -6,65 +6,68 @@ from yandex_gpt_main import yandex_gpt, save_message
 import ast
 import psycopg2
 from bs4 import BeautifulSoup
-#from  gpt_core import gpt_response, load_instructions, get_chat_history, save_message
 from base_functions import search1
 from rag_functions import rel_inf, example, study_plan, specialties_list, specialties_with_kod
 from model_util import model, device, tokenizer
+from dotenv import load_dotenv
+import os
+import time
 
-bot = telebot.TeleBot("7514035840:AAFXQyuhvQ6ecZ7CbRap1ZXewlor9l0dcBE", parse_mode='HTML')  
+load_dotenv()
+
+api_key = os.getenv("API_KEY")
+debug_mode = os.getenv("DEBUG")
+
+bot = telebot.TeleBot(api_key, parse_mode='HTML')  
 bot.remove_webhook()
 CHAT_HISTORY_DIR = "chat_history"
 
-
 db_params = {
-    'host': '212.109.194.252',
-    'port': '5432',
-    'dbname': 'admission',
-    'user': 'postgres',
-    'password': 'F2_RdsFh2'
+    "host": os.getenv("DB_HOST"),
+    "port": int(os.getenv("DB_PORT")),
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASS")
 }
 table_sp = ['FAQ','specialties','disciplines','enterprises_new','individual_achievements','departments']
 
 for i in range(len(table_sp)):
   table_name = table_sp[i]
   try:
+      conn = psycopg2.connect(**db_params)
       if i == 0:
-          conn = psycopg2.connect(**db_params)
           query = f'SELECT * FROM "{table_name}"';
           df = pd.read_sql_query(query, conn)
           print(df.head())
       if i == 1:
-          conn = psycopg2.connect(**db_params)
           query = f'SELECT * FROM "{table_name}"';
           df1 = pd.read_sql_query(query, conn)
           print(df1.head())
       if i == 2:
-          conn = psycopg2.connect(**db_params)
           query = f'SELECT * FROM "{table_name}"';
           df2 = pd.read_sql_query(query, conn)
           print(df2.head())
       if i == 3:
-          conn = psycopg2.connect(**db_params)
           query = f'SELECT * FROM "{table_name}"';
           df3 = pd.read_sql_query(query, conn)
           print(df3.head())
       if i == 4:
-          conn = psycopg2.connect(**db_params)
           query = f'SELECT * FROM "{table_name}"';
           df4 = pd.read_sql_query(query, conn)
           print(df4.head())
       if i == 5:
-          conn = psycopg2.connect(**db_params)
           query = f'SELECT * FROM "{table_name}"';
           df5 = pd.read_sql_query(query, conn)
           print(df5.head())
   except Exception as e:
       print(f'ошибка :{e}')
+  finally:
+      conn.close()
 
   
 
 def convert_markdown_to_html(text):
-    text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)  # жирный
+    text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)   # жирный
     text = re.sub(r"__(.*?)__", r"<u>\1</u>", text)       # подчёркнутый
     text = re.sub(r"\*(.*?)\*", r"<i>\1</i>", text)       # курсив
     text = re.sub(r"`(.*?)`", r"<code>\1</code>", text)   # код
@@ -272,4 +275,17 @@ def get_text_messages(message):
         save_message(message.from_user.id,"К сожалению, у меня, пока что не получается овтветить на данный вопрос просьба нажать поле: 'Ответ не подходит 😈'",'assistant')
         bot.send_message(message.from_user.id, "К сожалению, у меня, пока что не получается овтветить на данный вопрос просьба нажать поле: 'Ответ не подходит 😈'")
 
-bot.polling(none_stop=True, interval=0)
+
+def start_polling():
+    while True:
+        try:
+            bot.polling(none_stop=True, interval=0)
+        except Exception as e:
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Exception in polling: {e}")
+            time.sleep(5) # чтобы не забанили за слишком частые запросы
+        else:
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] завершился без ошибок")
+            break
+
+if __name__ == "__main__":
+    start_polling()
